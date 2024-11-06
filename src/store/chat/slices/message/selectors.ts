@@ -124,6 +124,14 @@ const currentChatIDsWithGuideMessage = (s: ChatStoreState) => {
   return currentChatsWithGuideMessage(meta)(s).map((s) => s.id);
 };
 
+const mainChatMessageIdsWithGuide = (s: ChatStoreState) => {
+  const meta = sessionMetaSelectors.currentAgentMeta(useSessionStore.getState());
+
+  return currentChatsWithGuideMessage(meta)(s)
+    .filter((m) => !m.threadId)
+    .map((s) => s.id);
+};
+
 const currentChatsWithHistoryConfig = (s: ChatStoreState): ChatMessage[] => {
   const chats = currentChats(s);
   const config = agentSelectors.currentAgentChatConfig(useAgentStore.getState());
@@ -211,5 +219,6 @@ export const chatSelectors = {
   isSendButtonDisabledByMessage,
   isToolCallStreaming,
   latestMessage,
+  mainChatMessageIdsWithGuide,
   showInboxWelcome,
 };

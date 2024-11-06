@@ -3,8 +3,10 @@ import { memo, useState } from 'react';
 import { Flexbox } from 'react-layout-kit';
 
 import { useChatStore } from '@/store/chat';
+import { threadSelectors } from '@/store/chat/selectors';
 import { useGlobalStore } from '@/store/global';
 
+import ThreadItem from '../ThreadItem';
 import DefaultContent from './DefaultContent';
 import TopicContent from './TopicContent';
 
@@ -52,29 +54,35 @@ const TopicItem = memo<ConfigCellProps>(({ title, active, id, fav }) => {
   const [toggleTopic] = useChatStore((s) => [s.switchTopic]);
   const [isHover, setHovering] = useState(false);
 
+  const threads = useChatStore(threadSelectors.getThreadsByTopic(id));
+
   return (
-    <Flexbox
-      align={'center'}
-      className={cx(styles.container, 'topic-item', active && styles.active)}
-      distribution={'space-between'}
-      horizontal
-      onClick={() => {
-        toggleTopic(id);
-        toggleConfig(false);
-      }}
-      onMouseEnter={() => {
-        setHovering(true);
-      }}
-      onMouseLeave={() => {
-        setHovering(false);
-      }}
-    >
-      {!id ? (
-        <DefaultContent />
-      ) : (
-        <TopicContent fav={fav} id={id} showMore={isHover} title={title} />
-      )}
-    </Flexbox>
+    <>
+      <Flexbox
+        align={'center'}
+        className={cx(styles.container, 'topic-item', active && styles.active)}
+        distribution={'space-between'}
+        horizontal
+        onClick={() => {
+          toggleTopic(id);
+          toggleConfig(false);
+        }}
+        onMouseEnter={() => {
+          setHovering(true);
+        }}
+        onMouseLeave={() => {
+          setHovering(false);
+        }}
+      >
+        {!id ? (
+          <DefaultContent />
+        ) : (
+          <TopicContent fav={fav} id={id} showMore={isHover} title={title} />
+        )}
+      </Flexbox>
+      {active &&
+        threads?.map((item) => <ThreadItem id={item.id} key={item.id} title={item.title} />)}
+    </>
   );
 });
 

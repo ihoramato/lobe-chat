@@ -1,6 +1,7 @@
 'use client';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import Script from 'next/script';
 import React, { PropsWithChildren, useState } from 'react';
 
 import { lambdaQuery, lambdaQueryClient } from '@/libs/trpc/client';
@@ -10,7 +11,10 @@ const QueryProvider = ({ children }: PropsWithChildren) => {
 
   return (
     <lambdaQuery.Provider client={lambdaQueryClient} queryClient={queryClient}>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <Script src="https://unpkg.com/react-scan/dist/auto.global.js" />
+        {children}
+      </QueryClientProvider>
     </lambdaQuery.Provider>
   );
 };

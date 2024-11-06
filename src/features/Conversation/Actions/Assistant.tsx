@@ -7,7 +7,8 @@ import { ErrorActionsBar } from './Error';
 import { useCustomActions } from './customAction';
 
 export const AssistantActionsBar: RenderAction = memo(({ id, onActionClick, error, tools }) => {
-  const { regenerate, edit, delAndRegenerate, copy, divider, del } = useChatListActionsBar();
+  const { regenerate, edit, delAndRegenerate, copy, divider, del, branching } =
+    useChatListActionsBar();
   const { translate, tts } = useCustomActions();
   const hasTools = !!tools;
 
@@ -28,7 +29,7 @@ export const AssistantActionsBar: RenderAction = memo(({ id, onActionClick, erro
         delAndRegenerate,
         del,
       ]}
-      items={[hasTools ? delAndRegenerate : edit, copy]}
+      items={[hasTools ? delAndRegenerate : edit, copy, branching]}
       onActionClick={onActionClick}
       type="ghost"
     />

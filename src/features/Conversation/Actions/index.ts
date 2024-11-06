@@ -27,6 +27,7 @@ export const useActionsClick = (): OnActionsClick => {
     ttsMessage,
     delAndRegenerateMessage,
     copyMessage,
+    openThreadCreator,
   ] = useChatStore((s) => [
     s.deleteMessage,
     s.regenerateMessage,
@@ -34,6 +35,7 @@ export const useActionsClick = (): OnActionsClick => {
     s.ttsMessage,
     s.delAndRegenerateMessage,
     s.copyMessage,
+    s.openThreadCreator,
   ]);
   const { message } = App.useApp();
 
@@ -42,6 +44,10 @@ export const useActionsClick = (): OnActionsClick => {
       case 'copy': {
         await copyMessage(id, content);
         message.success(t('copySuccess', { defaultValue: 'Copy Success' }));
+        break;
+      }
+      case 'branching': {
+        openThreadCreator(id);
         break;
       }
 

@@ -6,13 +6,13 @@ import { RenderAction } from '../types';
 import { useCustomActions } from './customAction';
 
 export const UserActionsBar: RenderAction = memo(({ onActionClick }) => {
-  const { regenerate, edit, copy, divider, del } = useChatListActionsBar();
+  const { regenerate, edit, copy, divider, del, branching } = useChatListActionsBar();
   const { translate, tts } = useCustomActions();
 
   return (
     <ActionIconGroup
       dropdownMenu={[edit, copy, divider, tts, translate, divider, regenerate, del]}
-      items={[regenerate, edit]}
+      items={[regenerate, edit, branching]}
       onActionClick={onActionClick}
       type="ghost"
     />
