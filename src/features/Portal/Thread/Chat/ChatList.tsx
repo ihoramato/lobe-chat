@@ -15,6 +15,7 @@ interface ConversationProps {
 const Conversation = memo(({ mobile }: ConversationProps) => {
   const data = useChatStore(threadSelectors.threadMessages, isEqual);
 
+  console.log(data);
   const itemContent = useCallback(
     (index: number, id: string) => <ThreadChatItem id={id} index={index} />,
     [mobile],

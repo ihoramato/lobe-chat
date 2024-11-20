@@ -66,8 +66,6 @@ const Item = memo<ChatListItemProps>(({ index, className, id, hideActionBar, end
   const item = useChatStore((s) => {
     const chats = chatSelectors.currentChatsWithGuideMessage(meta)(s);
 
-    if (index >= chats.length) return;
-
     return chats.find((s) => s.id === id);
   }, isEqual);
 
