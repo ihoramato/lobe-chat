@@ -38,9 +38,9 @@ export interface ChatThreadAction {
     sourceMessageId: string;
     topicId: string;
     type: ThreadType;
-  }) => Promise<string | undefined>;
+  }) => Promise<string>;
   openThreadCreator: (messageId: string) => void;
-  openThreadInPortal: (threadId: string) => void;
+  openThreadInPortal: (threadId: string, sourceMessageId: string) => void;
   useFetchThreads: (topicId?: string) => SWRResponse<ThreadItem[]>;
 }
 
@@ -78,11 +78,19 @@ export const chatThreadMessage: StateCreator<
     set({ threadInputMessage: message }, false, n(`updateThreadInputMessage`, message));
   },
   openThreadCreator: (messageId) => {
-    set({ threadStartMessageId: messageId, portalThreadId: undefined }, false, 'openThreadCreator');
+    set(
+      { threadStartMessageId: messageId, portalThreadId: undefined, startToForkThread: true },
+      false,
+      'openThreadCreator',
+    );
     get().togglePortal(true);
   },
-  openThreadInPortal: (threadId) => {
-    set({ portalThreadId: threadId }, false, 'openThreadInPortal');
+  openThreadInPortal: (threadId, sourceMessageId) => {
+    set(
+      { portalThreadId: threadId, threadStartMessageId: sourceMessageId, startToForkThread: false },
+      false,
+      'openThreadInPortal',
+    );
     get().togglePortal(true);
   },
   sendThreadMessage: async ({ message, onlyAddUserMessage }) => {
@@ -124,8 +132,9 @@ export const chatThreadMessage: StateCreator<
       });
 
       // mark the portal in thread mode
-      set({ portalThreadId: threadId });
+      await get().refreshMessages();
       await get().refreshThreads();
+      get().openThreadInPortal(threadId, threadStartMessageId);
 
       return;
     }
@@ -242,6 +251,6 @@ export const chatThreadMessage: StateCreator<
     const topicId = get().activeTopicId;
     if (!topicId) return;
 
-    return mutate([SWR_USE_FETCH_THREADS, get().activeId]);
+    return mutate([SWR_USE_FETCH_THREADS, topicId]);
   },
 });

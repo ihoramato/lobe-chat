@@ -10,15 +10,17 @@ import { oneLineEllipsis } from '@/styles';
 import NewThread from './New';
 
 const Header = () => {
+  const isInNew = useChatStore((s) => s.startToForkThread);
+
   const currentThread = useChatStore(portalThreadSelectors.portalCurrentThread);
 
-  return !currentThread ? (
+  return isInNew ? (
     <NewThread />
   ) : (
     <Flexbox align={'center'} gap={8} horizontal style={{ marginInlineStart: 8 }}>
       <Icon icon={GitBranch} size={{ fontSize: 20 }} />
       <Typography.Text className={oneLineEllipsis} style={{ fontSize: 16, fontWeight: 'bold' }}>
-        {currentThread.title}
+        {currentThread?.title}
       </Typography.Text>
     </Flexbox>
   );

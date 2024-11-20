@@ -6,9 +6,12 @@ export interface ChatThreadState {
 
   isCreatingThreadMessage?: boolean;
   newThreadMode: ThreadType;
+  /**
+   * if true it mean to start to fork a new thread
+   */
+  startToForkThread?: boolean;
   threadInputMessage: string;
   threadMaps: Record<string, ThreadItem[]>;
-
   threadStartMessageId?: string;
   threadsInit?: boolean;
 }

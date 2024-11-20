@@ -24,7 +24,7 @@ const useStyles = createStyles(({ css, token }) => ({
   `,
 }));
 
-const Item = memo<ThreadItem>(({ id, title, lastActiveAt }) => {
+const Item = memo<ThreadItem>(({ id, title, lastActiveAt, sourceMessageId }) => {
   const openThreadInPortal = useChatStore((s) => s.openThreadInPortal);
   const { styles } = useStyles();
   const messageCount = useChatStore(chatSelectors.countMessagesByThreadId(id), isEqual);
@@ -36,7 +36,7 @@ const Item = memo<ThreadItem>(({ id, title, lastActiveAt }) => {
       gap={8}
       horizontal
       onClick={() => {
-        openThreadInPortal(id);
+        openThreadInPortal(id, sourceMessageId);
       }}
     >
       {title}
