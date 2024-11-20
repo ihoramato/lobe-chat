@@ -147,6 +147,12 @@ const chatsMessageString = (s: ChatStoreState): string => {
 const getMessageById = (id: string) => (s: ChatStoreState) =>
   chatHelpers.getMessageById(currentChats(s), id);
 
+const countMessagesByThreadId = (id: string) => (s: ChatStoreState) => {
+  const messages = currentChats(s).filter((m) => m.threadId === id);
+
+  return messages.length;
+};
+
 const getMessageByToolCallId = (id: string) => (s: ChatStoreState) => {
   const messages = currentChats(s);
   return messages.find((m) => m.tool_call_id === id);
@@ -196,6 +202,7 @@ const isSendButtonDisabledByMessage = (s: ChatStoreState) =>
 
 export const chatSelectors = {
   chatsMessageString,
+  countMessagesByThreadId,
   currentChatIDsWithGuideMessage,
   currentChatKey,
   currentChatLoadingState,
