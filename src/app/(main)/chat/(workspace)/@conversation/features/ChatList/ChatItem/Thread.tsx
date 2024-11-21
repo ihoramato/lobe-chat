@@ -36,6 +36,7 @@ const Thread = memo<ThreadProps>(({ id, placement }) => {
       direction={placement === 'end' ? 'horizontal-reverse' : 'horizontal'}
       gap={12}
       paddingInline={16}
+      style={{ paddingBottom: 16 }}
     >
       <div style={{ width: 40 }} />
       <Flexbox className={styles.container} gap={8} padding={4} style={{ width: 'fit-content' }}>

@@ -2,8 +2,10 @@ import { ThreadItem, ThreadType } from '@/types/topic';
 
 export interface ChatThreadState {
   activeThreadId?: string;
-  creatingThread?: boolean;
-
+  /**
+   * is creating thread with service call
+   */
+  isCreatingThread?: boolean;
   isCreatingThreadMessage?: boolean;
   newThreadMode: ThreadType;
   /**
@@ -12,12 +14,15 @@ export interface ChatThreadState {
   startToForkThread?: boolean;
   threadInputMessage: string;
   threadMaps: Record<string, ThreadItem[]>;
+  /**
+   * when open thread creator, set the message id to it
+   */
   threadStartMessageId?: string;
   threadsInit?: boolean;
 }
 
 export const initialThreadState: ChatThreadState = {
-  creatingThread: false,
+  isCreatingThread: false,
   newThreadMode: ThreadType.Continuation,
   threadInputMessage: '',
   threadMaps: {},

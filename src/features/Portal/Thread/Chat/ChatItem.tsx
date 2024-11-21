@@ -1,6 +1,9 @@
 import React, { memo, useMemo } from 'react';
 
 import { ChatItem } from '@/features/Conversation';
+import ActionsBar from '@/features/Conversation/components/ChatItem/ActionsBar';
+import { useAgentStore } from '@/store/agent';
+import { agentSelectors } from '@/store/agent/slices/chat';
 import { useChatStore } from '@/store/chat';
 import { threadSelectors } from '@/store/chat/selectors';
 
@@ -12,17 +15,38 @@ export interface ThreadChatItemProps {
 }
 
 const ThreadChatItem = memo<ThreadChatItemProps>(({ id, index }) => {
-  const threadStartMessageIndex = useChatStore(threadSelectors.threadStartMessageIndex);
-  const threadMessageId = useChatStore(threadSelectors.threadStartMessageId);
+  const [threadMessageId, threadStartMessageIndex, historyLength] = useChatStore((s) => [
+    threadSelectors.threadSourceMessageId(s),
+    threadSelectors.threadSourceMessageIndex(s),
+    threadSelectors.portalThreadMessages(s).length,
+  ]);
 
   const enableThreadDivider = threadMessageId === id;
 
-  const endRender = useMemo(() => enableThreadDivider && <ThreadDivider />, [enableThreadDivider]);
+  const endRender = useMemo(
+    () => enableThreadDivider && <ThreadDivider />,
+    [enableThreadDivider, id],
+  );
+
+  const actionBar = useMemo(
+    () => index > threadStartMessageIndex && <ActionsBar id={id} />,
+    [id, index, threadStartMessageIndex],
+  );
+
+  const enableHistoryDivider = useAgentStore((s) => {
+    const config = agentSelectors.currentAgentChatConfig(s);
+    return (
+      config.enableHistoryCount &&
+      historyLength > (config.historyCount ?? 0) &&
+      config.historyCount === historyLength - index
+    );
+  });
 
   return (
     <ChatItem
+      actionBar={actionBar}
+      enableHistoryDivider={enableHistoryDivider}
       endRender={endRender}
-      hideActionBar={index <= threadStartMessageIndex}
       id={id}
       index={index}
     />

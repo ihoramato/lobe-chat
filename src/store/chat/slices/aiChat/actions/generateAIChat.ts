@@ -32,6 +32,7 @@ interface ProcessMessageParams {
    * the RAG query content, should be embedding and used in the semantic search
    */
   ragQuery?: string;
+  threadId?: string;
 }
 
 export interface AIGenerateAction {
@@ -308,6 +309,7 @@ export const generateAIChat: StateCreator<
       parentId: userMessageId,
       sessionId: get().activeId,
       topicId: activeTopicId, // if there is activeTopicId，then add it to topicId
+      threadId: params?.threadId,
       fileChunks,
       ragQueryId,
     };

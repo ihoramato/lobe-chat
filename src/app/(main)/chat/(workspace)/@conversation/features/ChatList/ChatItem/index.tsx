@@ -1,12 +1,12 @@
 import { createStyles } from 'antd-style';
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
 
 import { ChatItem } from '@/features/Conversation';
+import ActionsBar from '@/features/Conversation/components/ChatItem/ActionsBar';
 import { useAgentStore } from '@/store/agent';
-import { agentSelectors } from '@/store/agent/slices/chat';
+import { agentSelectors } from '@/store/agent/selectors';
 import { useChatStore } from '@/store/chat';
-import { threadSelectors } from '@/store/chat/selectors';
-import { chatSelectors } from '@/store/chat/slices/message/selectors';
+import { chatSelectors, threadSelectors } from '@/store/chat/selectors';
 
 import Thread from './Thread';
 
@@ -55,11 +55,27 @@ const MainChatItem = memo<ThreadChatItemProps>(({ id, index }) => {
   const userRole = useChatStore((s) => chatSelectors.getMessageById(id)(s)?.role);
 
   const placement = type === 'chat' && userRole === 'user' ? 'end' : 'start';
-  const showThread = useChatStore(threadSelectors.hasThreadBySourceMsgId(id));
+  const [showThread, historyLength] = useChatStore((s) => [
+    threadSelectors.hasThreadBySourceMsgId(id)(s),
+    chatSelectors.mainChatMessageIdsWithGuide(s).length,
+  ]);
+
+  const enableHistoryDivider = useAgentStore((s) => {
+    const config = agentSelectors.currentAgentChatConfig(s);
+    return (
+      config.enableHistoryCount &&
+      historyLength > (config.historyCount ?? 0) &&
+      config.historyCount === historyLength - index
+    );
+  });
+
+  const actionBar = useMemo(() => <ActionsBar id={id} />, [id]);
 
   return (
     <ChatItem
+      actionBar={actionBar}
       className={showThread ? cx(styles.line, styles[placement]) : ''}
+      enableHistoryDivider={enableHistoryDivider}
       endRender={showThread && <Thread id={id} placement={placement} />}
       id={id}
       index={index}

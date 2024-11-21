@@ -1,6 +1,7 @@
 import { MESSAGE_THREAD_DIVIDER_ID } from '@/const/message';
 import type { ChatStoreState } from '@/store/chat';
-import { ThreadType } from '@/types/topic';
+import { ChatMessage } from '@/types/message';
+import { ThreadItem, ThreadType } from '@/types/topic';
 
 import { chatSelectors } from '../message/selectors';
 
@@ -10,61 +11,104 @@ const currentTopicThreads = (s: ChatStoreState) => {
   return s.threadMaps[s.activeTopicId] || [];
 };
 
+const currentPortalThread = (s: ChatStoreState): ThreadItem | undefined => {
+  if (!s.portalThreadId) return undefined;
+
+  const threads = currentTopicThreads(s);
+
+  return threads.find((t) => t.id === s.portalThreadId);
+};
+
 const threadStartMessageId = (s: ChatStoreState) => s.threadStartMessageId;
 
-const filterUntilTargetId = (idList: string[], targetId?: string) => {
-  if (!targetId) return idList;
+const threadSourceMessageId = (s: ChatStoreState) => {
+  if (s.startToForkThread) return threadStartMessageId(s);
 
-  const targetIndex = idList.indexOf(targetId);
-
-  // 如果找到目标id，则截取到该位置（包含该位置）
-  // 如果没找到目标id，则返回原数组
-  return targetIndex !== -1 ? idList.slice(0, targetIndex + 1) : idList;
+  const portalThread = currentPortalThread(s);
+  return portalThread?.sourceMessageId;
 };
 
 /**
  * 获取当前 thread 的父级消息
  */
-const threadParentMessages = (s: ChatStoreState): string[] => {
-  // 如果是独立话题模式，则只显示话题开始消息
-  if (s.newThreadMode === ThreadType.Standalone)
-    return [threadStartMessageId(s), MESSAGE_THREAD_DIVIDER_ID].filter(Boolean) as string[];
-
+const threadParentMessages = (s: ChatStoreState): ChatMessage[] => {
   // skip tool message
   const data = chatSelectors.currentChats(s).filter((m) => m.role !== 'tool');
 
-  const items = filterUntilTargetId(
-    data.map((i) => i.id),
-    threadStartMessageId(s),
-  );
-  return [...items, MESSAGE_THREAD_DIVIDER_ID];
+  const genMessage = (startMessageId: string | undefined, threadMode?: ThreadType) => {
+    if (!startMessageId) return [];
+
+    // 如果是独立话题模式，则只显示话题开始消息
+    if (threadMode === ThreadType.Standalone) {
+      return data.filter((m) => m.id === startMessageId);
+    }
+
+    // 如果是连续模式下，那么只显示话题开始消息和话题分割线
+    const targetIndex = data.findIndex((item) => item.id === startMessageId);
+
+    if (targetIndex < 0) return [];
+
+    return data.slice(0, targetIndex + 1);
+  };
+
+  if (s.startToForkThread) {
+    const startMessageId = threadStartMessageId(s)!;
+
+    return genMessage(startMessageId, s.newThreadMode);
+  }
+
+  const portalThread = currentPortalThread(s);
+  return genMessage(portalThread?.sourceMessageId, portalThread?.type);
 };
 
-const portalThreadMessages = (s: ChatStoreState): string[] => {
-  // skip tool message
-  const data = chatSelectors.currentChats(s).filter((m) => m.role !== 'tool');
-
-  return data.filter((m) => !!s.portalThreadId && m.threadId === s.portalThreadId).map((i) => i.id);
-};
-
-const threadMessages = (s: ChatStoreState): string[] => {
+const threadParentMessageIds = (s: ChatStoreState): string[] => {
+  const ids = threadParentMessages(s).map((i) => i.id);
   // 如果是独立话题模式，则只显示话题开始消息
-  if (s.newThreadMode === ThreadType.Standalone)
-    return [threadStartMessageId(s), MESSAGE_THREAD_DIVIDER_ID].filter(Boolean) as string[];
 
-  // skip tool message
+  return [...ids, MESSAGE_THREAD_DIVIDER_ID].filter(Boolean) as string[];
+};
+
+/**
+ * these messages are the messages that are in the thread
+ *
+ */
+const getMessagesByThreadId =
+  (id?: string) =>
+  (s: ChatStoreState): ChatMessage[] => {
+    // skip tool message
+    const data = chatSelectors.currentChats(s).filter((m) => m.role !== 'tool');
+
+    return data.filter((m) => !!id && m.threadId === id);
+  };
+
+const getMessageIdsByThreadId =
+  (id?: string) =>
+  (s: ChatStoreState): string[] => {
+    return getMessagesByThreadId(id)(s).map((i) => i.id);
+  };
+
+const portalThreadMessages = (s: ChatStoreState): ChatMessage[] => {
+  if (s.newThreadMode === ThreadType.Standalone) return threadParentMessages(s);
+
   const parentMessages = threadParentMessages(s);
-  const portalMessages = portalThreadMessages(s);
+  const afterMessages = getMessagesByThreadId(s.portalThreadId)(s);
+
+  return [...parentMessages, ...afterMessages];
+};
+
+const portalThreadMessageIds = (s: ChatStoreState): string[] => {
+  const parentMessages = threadParentMessageIds(s);
+  const portalMessages = getMessageIdsByThreadId(s.portalThreadId)(s);
 
   return [...parentMessages, ...portalMessages];
 };
 
-const threadStartMessageIndex = (s: ChatStoreState) => {
-  const theadMessageId = threadStartMessageId(s);
+const threadSourceMessageIndex = (s: ChatStoreState) => {
+  const theadMessageId = threadSourceMessageId(s);
+  const data = portalThreadMessages(s);
 
-  return !theadMessageId ? -1 : threadParentMessages(s).indexOf(theadMessageId);
+  return !theadMessageId ? -1 : data.findIndex((d) => d.id === theadMessageId);
 };
-
 const getThreadsByTopic = (topicId?: string) => (s: ChatStoreState) => {
   if (!topicId) return;
 
@@ -92,12 +136,15 @@ const hasThreadBySourceMsgId = (id: string) => (s: ChatStoreState) => {
 export const threadSelectors = {
   currentTopicThreads,
   getFirstThreadBySourceMsgId,
+  getMessageIdsByThreadId,
+  getMessagesByThreadId,
   getThreadsBySourceMsgId,
   getThreadsByTopic,
   hasThreadBySourceMsgId,
+  portalThreadMessageIds,
   portalThreadMessages,
-  threadMessages,
   threadParentMessages,
+  threadSourceMessageId,
+  threadSourceMessageIndex,
   threadStartMessageId,
-  threadStartMessageIndex,
 };

@@ -6,6 +6,18 @@ import { CreateThreadParams, ThreadStatus } from '@/types/topic';
 
 import { ThreadItem, threads } from '../schemas/lobechat';
 
+const queryColumns = {
+  createdAt: threads.createdAt,
+  id: threads.id,
+  parentThreadId: threads.parentThreadId,
+  sourceMessageId: threads.sourceMessageId,
+  status: threads.status,
+  title: threads.title,
+  topicId: threads.topicId,
+  type: threads.type,
+  updatedAt: threads.updatedAt,
+};
+
 export class ThreadModel {
   private userId: string;
 
@@ -32,18 +44,24 @@ export class ThreadModel {
     return serverDB.delete(threads).where(eq(threads.userId, this.userId));
   };
 
-  query = async (): Promise<ThreadItem[]> => {
-    return serverDB.query.threads.findMany({
-      orderBy: [desc(threads.updatedAt)],
-      where: eq(threads.userId, this.userId),
-    });
+  query = async () => {
+    const data = await serverDB
+      .select(queryColumns)
+      .from(threads)
+      .where(eq(threads.userId, this.userId))
+      .orderBy(desc(threads.updatedAt));
+
+    return data as ThreadItem[];
   };
 
-  queryByTopicId = async (topicId: string): Promise<ThreadItem[]> => {
-    return serverDB.query.threads.findMany({
-      orderBy: [desc(threads.updatedAt)],
-      where: and(eq(threads.topicId, topicId), eq(threads.userId, this.userId)),
-    });
+  queryByTopicId = async (topicId: string) => {
+    const data = await serverDB
+      .select(queryColumns)
+      .from(threads)
+      .where(and(eq(threads.topicId, topicId), eq(threads.userId, this.userId)))
+      .orderBy(desc(threads.updatedAt));
+
+    return data as ThreadItem[];
   };
 
   findById = async (id: string) => {

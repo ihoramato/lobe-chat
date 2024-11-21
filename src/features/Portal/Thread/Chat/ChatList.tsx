@@ -1,4 +1,3 @@
-import isEqual from 'fast-deep-equal';
 import React, { memo, useCallback } from 'react';
 import { Flexbox } from 'react-layout-kit';
 
@@ -13,9 +12,12 @@ interface ConversationProps {
 }
 
 const Conversation = memo(({ mobile }: ConversationProps) => {
-  const data = useChatStore(threadSelectors.threadMessages, isEqual);
+  const data = useChatStore(threadSelectors.portalThreadMessageIds);
 
-  console.log(data);
+  const useFetchThreads = useChatStore((s) => s.useFetchThreads);
+
+  useFetchThreads();
+
   const itemContent = useCallback(
     (index: number, id: string) => <ThreadChatItem id={id} index={index} />,
     [mobile],
