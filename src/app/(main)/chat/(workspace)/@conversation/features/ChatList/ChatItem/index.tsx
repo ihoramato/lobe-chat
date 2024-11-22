@@ -10,7 +10,7 @@ import { chatSelectors, threadSelectors } from '@/store/chat/selectors';
 
 import Thread from './Thread';
 
-const useStyles = createStyles(({ css, token, isDarkMode }) => {
+const useStyles = createStyles(({ css, token }) => {
   return {
     end: css`
       &::after {
