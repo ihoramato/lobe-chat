@@ -11,7 +11,10 @@ export class ThreadService {
     return lambdaClient.thread.getThreads.query({ topicId });
   };
 
-  createThreadWithMessage({ message, ...params }: CreateThreadWithMessageParams): Promise<string> {
+  createThreadWithMessage({
+    message,
+    ...params
+  }: CreateThreadWithMessageParams): Promise<{ messageId: string, threadId: string; }> {
     return lambdaClient.thread.createThreadWithMessage.mutate({
       ...params,
       message: { ...message, sessionId: this.toDbSessionId(message.sessionId) },

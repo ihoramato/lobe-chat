@@ -44,9 +44,9 @@ export const threadRouter = router({
         type: input.type,
       });
 
-      await ctx.messageModel.create({ ...input.message, threadId: thread?.id });
+      const message = await ctx.messageModel.create({ ...input.message, threadId: thread?.id });
 
-      return thread?.id;
+      return { messageId: message?.id, threadId: thread?.id };
     }),
   getThread: threadProcedure.query(async ({ ctx }): Promise<ThreadItem[]> => {
     return ctx.threadModel.query() as any;

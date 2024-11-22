@@ -4,12 +4,11 @@ import isEqual from 'fast-deep-equal';
 import { SWRResponse, mutate } from 'swr';
 import { StateCreator } from 'zustand/vanilla';
 
+import { MESSAGE_THREAD_DIVIDER_ID, THREAD_DRAFT_ID } from '@/const/message';
 import { useClientDataSWR } from '@/libs/swr';
 import { threadService } from '@/services/thread';
 import { threadSelectors } from '@/store/chat/selectors';
-import { getAgentChatConfig } from '@/store/chat/slices/aiChat/actions/helpers';
 import { chatSelectors } from '@/store/chat/slices/message/selectors';
-import { topicSelectors } from '@/store/chat/slices/topic/selectors';
 import { ChatStore } from '@/store/chat/store';
 import { useSessionStore } from '@/store/session';
 import { CreateMessageParams, SendThreadMessageParams } from '@/types/message';
@@ -32,7 +31,7 @@ export interface ChatThreadAction {
     sourceMessageId: string;
     topicId: string;
     type: ThreadType;
-  }) => Promise<string>;
+  }) => Promise<{ threadId: string; messageId: string }>;
   openThreadCreator: (messageId: string) => void;
   openThreadInPortal: (threadId: string, sourceMessageId: string) => void;
   useFetchThreads: (topicId?: string) => SWRResponse<ThreadItem[]>;
@@ -94,82 +93,86 @@ export const chatThreadMessage: StateCreator<
       threadId: portalThreadId,
     };
 
-    // if there is no portalThreadId, then create a thread
+    let parentMessageId: string | undefined = undefined;
+    let tempMessageId: string | undefined = undefined;
+
+    // if there is no portalThreadId, then create a thread and then append message
     if (!portalThreadId) {
       if (!threadStartMessageId) return;
+      // we need to create a temp message for optimistic update
+      tempMessageId = get().internal_createTmpMessage({
+        ...newMessage,
+        threadId: THREAD_DRAFT_ID,
+      });
+      get().internal_toggleMessageLoading(true, tempMessageId);
 
-      const threadId = await get().createThread({
+      const { threadId, messageId } = await get().createThread({
         message: newMessage,
         sourceMessageId: threadStartMessageId,
         topicId: activeTopicId,
         type: newThreadMode,
       });
 
+      parentMessageId = messageId;
+
       // mark the portal in thread mode
-      await get().refreshMessages();
       await get().refreshThreads();
+      await get().refreshMessages();
+
       get().openThreadInPortal(threadId, threadStartMessageId);
+    } else {
+      // if there is a thread, just append message
+      // we need to create a temp message for optimistic update
+      tempMessageId = get().internal_createTmpMessage(newMessage);
+      get().internal_toggleMessageLoading(true, tempMessageId);
 
-      return;
+      parentMessageId = await get().internal_createMessage(newMessage, { tempMessageId });
     }
-    // or just append message
 
-    const agentConfig = getAgentChatConfig();
-
-    let tempMessageId: string | undefined = undefined;
-    let newThreadId: string | undefined = undefined;
-
-    // we need to create a temp message for optimistic update
-    tempMessageId = get().internal_createTmpMessage(newMessage);
-    get().internal_toggleMessageLoading(true, tempMessageId);
+    get().internal_toggleMessageLoading(false, tempMessageId);
 
     //  update assistant update to make it rerank
     useSessionStore.getState().triggerSessionUpdate(get().activeId);
 
-    const id = await get().internal_createMessage(newMessage, {
-      tempMessageId,
-    });
-
-    if (tempMessageId) get().internal_toggleMessageLoading(false, tempMessageId);
-
-    // switch to the new topic if create the new topic
-
     // Get the current messages to generate AI response
     const messages = threadSelectors.portalThreadMessages(get());
 
-    await internal_coreProcessMessage(messages, id, {
+    await internal_coreProcessMessage(messages, parentMessageId, {
       ragQuery: get().internal_shouldUseRAG() ? message : undefined,
-      threadId: portalThreadId,
+      threadId: get().portalThreadId,
     });
 
     set({ isCreatingMessage: false }, false, n('creatingMessage/stop'));
 
-    const summaryTitle = async () => {
-      // if autoCreateTopic is false, then stop
-      if (!agentConfig.enableAutoCreateTopic) return;
+    // switch to the new topic if create the new topic
+    // const agentConfig = getAgentChatConfig();
 
-      // check activeTopic and then auto update topic title
-      if (newThreadId) {
-        const chats = chatSelectors.currentChats(get());
-        await get().summaryTopicTitle(newThreadId, chats);
-        return;
-      }
-
-      const topic = topicSelectors.currentActiveTopic(get());
-
-      if (topic && !topic.title) {
-        const chats = chatSelectors.currentChats(get());
-        await get().summaryTopicTitle(topic.id, chats);
-      }
-    };
-
-    await summaryTitle();
+    // const summaryTitle = async () => {
+    //   // if autoCreateTopic is false, then stop
+    //   if (!agentConfig.enableAutoCreateTopic) return;
+    //
+    //   // check activeTopic and then auto update topic title
+    //   if (newThreadId) {
+    //     const chats = chatSelectors.currentChats(get());
+    //     await get().summaryTopicTitle(newThreadId, chats);
+    //     return;
+    //   }
+    //
+    //   const topic = topicSelectors.currentActiveTopic(get());
+    //
+    //   if (topic && !topic.title) {
+    //     const chats = chatSelectors.currentChats(get());
+    //     await get().summaryTopicTitle(topic.id, chats);
+    //   }
+    // };
+    //
+    // await summaryTitle();
   },
 
   createThread: async ({ message, sourceMessageId, topicId, type }) => {
     set({ isCreatingThread: true }, false, n('creatingThread/start'));
     const sourceMessage = chatSelectors.getMessageById(sourceMessageId)(get());
-    const threadId = await threadService.createThreadWithMessage({
+    const data = await threadService.createThreadWithMessage({
       title: sourceMessage?.content.slice(0, 20),
       topicId,
       sourceMessageId,
@@ -178,7 +181,7 @@ export const chatThreadMessage: StateCreator<
     });
     set({ isCreatingThread: false }, false, n('creatingThread/end'));
 
-    return threadId;
+    return data;
   },
 
   useFetchThreads: (topicId) =>
@@ -207,6 +210,6 @@ export const chatThreadMessage: StateCreator<
     const topicId = get().activeTopicId;
     if (!topicId) return;
 
-    return mutate([SWR_USE_FETCH_THREADS, get().activeId]);
+    return mutate([SWR_USE_FETCH_THREADS, topicId]);
   },
 });

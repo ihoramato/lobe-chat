@@ -1,5 +1,4 @@
 import { Icon } from '@lobehub/ui';
-import { Typography } from 'antd';
 import { createStyles } from 'antd-style';
 import dayjs from 'dayjs';
 import isEqual from 'fast-deep-equal';
@@ -14,13 +13,17 @@ import { ThreadItem } from '@/types/topic';
 const useStyles = createStyles(({ css, token }) => ({
   container: css`
     cursor: pointer;
-    padding-block: 6px;
-    padding-inline: 8px;
+    padding-block: 4px;
+    padding-inline: 6px;
     border-radius: 6px;
+    font-size: 12px;
 
     &:hover {
       background: ${token.colorFillTertiary};
     }
+  `,
+  extra: css`
+    color: ${token.colorTextSecondary};
   `,
 }));
 
@@ -40,11 +43,11 @@ const Item = memo<ThreadItem>(({ id, title, lastActiveAt, sourceMessageId }) => 
       }}
     >
       {title}
-      <Typography.Text type={'secondary'}>
+      <Flexbox className={styles.extra} horizontal>
         {!!messageCount && `${messageCount} 条消息 · `}
         {dayjs(lastActiveAt).format('YYYY-MM-DD')}
         <Icon icon={ChevronRight} />
-      </Typography.Text>
+      </Flexbox>
     </Flexbox>
   );
 });

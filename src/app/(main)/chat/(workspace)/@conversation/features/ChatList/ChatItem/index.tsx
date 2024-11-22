@@ -10,34 +10,36 @@ import { chatSelectors, threadSelectors } from '@/store/chat/selectors';
 
 import Thread from './Thread';
 
-const useStyles = createStyles(({ css, token }) => ({
-  end: css`
-    &::after {
-      inset-inline-end: 36px;
-      border-inline-end: 2px solid ${token.colorSplit};
-      border-end-end-radius: 8px;
-    }
-  `,
-  line: css`
-    &::after {
-      content: '';
+const useStyles = createStyles(({ css, token, isDarkMode }) => {
+  return {
+    end: css`
+      &::after {
+        inset-inline-end: 36px;
+        border-inline-end: 2px solid ${token.colorFillTertiary};
+        border-end-end-radius: 8px;
+      }
+    `,
+    line: css`
+      &::after {
+        content: '';
 
-      position: absolute;
-      inset-block: 56px 50px;
+        position: absolute;
+        inset-block: 56px 50px;
 
-      width: 32px;
+        width: 32px;
 
-      border-block-end: 2px solid ${token.colorSplit};
-    }
-  `,
-  start: css`
-    &::after {
-      inset-inline-start: 36px;
-      border-inline-start: 2px solid ${token.colorSplit};
-      border-end-start-radius: 8px;
-    }
-  `,
-}));
+        border-block-end: 2px solid ${token.colorFillTertiary};
+      }
+    `,
+    start: css`
+      &::after {
+        inset-inline-start: 36px;
+        border-inline-start: 2px solid ${token.colorFillTertiary};
+        border-end-start-radius: 8px;
+      }
+    `,
+  };
+});
 
 export interface ThreadChatItemProps {
   id: string;

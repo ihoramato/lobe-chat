@@ -1,18 +1,19 @@
 import React, { memo, useCallback } from 'react';
 import { Flexbox } from 'react-layout-kit';
 
-import { VirtualizedList } from '@/features/Conversation';
+import { SkeletonList, VirtualizedList } from '@/features/Conversation';
 import { useChatStore } from '@/store/chat';
 import { threadSelectors } from '@/store/chat/selectors';
 
 import ThreadChatItem from './ChatItem';
 
-interface ConversationProps {
+interface ChatListProps {
   mobile?: boolean;
 }
 
-const Conversation = memo(({ mobile }: ConversationProps) => {
+const ChatList = memo(({ mobile }: ChatListProps) => {
   const data = useChatStore(threadSelectors.portalThreadMessageIds);
+  const isInit = useChatStore((s) => s.threadsInit);
 
   const useFetchThreads = useChatStore((s) => s.useFetchThreads);
 
@@ -22,6 +23,8 @@ const Conversation = memo(({ mobile }: ConversationProps) => {
     (index: number, id: string) => <ThreadChatItem id={id} index={index} />,
     [mobile],
   );
+
+  if (!isInit) return <SkeletonList mobile={mobile} />;
 
   return (
     <Flexbox
@@ -38,4 +41,4 @@ const Conversation = memo(({ mobile }: ConversationProps) => {
   );
 });
 
-export default Conversation;
+export default ChatList;

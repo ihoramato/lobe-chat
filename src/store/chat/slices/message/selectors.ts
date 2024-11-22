@@ -47,6 +47,15 @@ const currentChats = (s: ChatStoreState): ChatMessage[] => {
   return messages.map((i) => ({ ...i, meta: getMeta(i) }));
 };
 
+/**
+ * 在展示时会默认隐藏掉所有 tool 消息
+ */
+const currentChatsWithoutTool = (s: ChatStoreState) => {
+  const messages = currentChats(s);
+
+  return messages.filter((m) => m.role !== 'tool');
+};
+
 const currentToolMessages = (s: ChatStoreState) => {
   const messages = currentChats(s);
 
@@ -209,6 +218,7 @@ export const chatSelectors = {
   currentChats,
   currentChatsWithGuideMessage,
   currentChatsWithHistoryConfig,
+  currentChatsWithoutTool,
   currentToolMessages,
   currentUserFiles,
   getMessageById,

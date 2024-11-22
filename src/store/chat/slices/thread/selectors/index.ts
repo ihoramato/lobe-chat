@@ -1,9 +1,10 @@
-import { MESSAGE_THREAD_DIVIDER_ID } from '@/const/message';
+import { MESSAGE_THREAD_DIVIDER_ID, THREAD_DRAFT_ID } from '@/const/message';
 import type { ChatStoreState } from '@/store/chat';
 import { ChatMessage } from '@/types/message';
 import { ThreadItem, ThreadType } from '@/types/topic';
 
-import { chatSelectors } from '../message/selectors';
+import { chatSelectors } from '../../message/selectors';
+import { genMessage } from './util';
 
 const currentTopicThreads = (s: ChatStoreState) => {
   if (!s.activeTopicId) return [];
@@ -33,32 +34,18 @@ const threadSourceMessageId = (s: ChatStoreState) => {
  */
 const threadParentMessages = (s: ChatStoreState): ChatMessage[] => {
   // skip tool message
-  const data = chatSelectors.currentChats(s).filter((m) => m.role !== 'tool');
-
-  const genMessage = (startMessageId: string | undefined, threadMode?: ThreadType) => {
-    if (!startMessageId) return [];
-
-    // 如果是独立话题模式，则只显示话题开始消息
-    if (threadMode === ThreadType.Standalone) {
-      return data.filter((m) => m.id === startMessageId);
-    }
-
-    // 如果是连续模式下，那么只显示话题开始消息和话题分割线
-    const targetIndex = data.findIndex((item) => item.id === startMessageId);
-
-    if (targetIndex < 0) return [];
-
-    return data.slice(0, targetIndex + 1);
-  };
+  const data = chatSelectors.currentChatsWithoutTool(s);
 
   if (s.startToForkThread) {
     const startMessageId = threadStartMessageId(s)!;
 
-    return genMessage(startMessageId, s.newThreadMode);
+    // 存在 threadId 的消息是子消息，在创建付消息时需要忽略
+    const messages = data.filter((m) => !m.threadId);
+    return genMessage(messages, startMessageId, s.newThreadMode);
   }
 
   const portalThread = currentPortalThread(s);
-  return genMessage(portalThread?.sourceMessageId, portalThread?.type);
+  return genMessage(data, portalThread?.sourceMessageId, portalThread?.type);
 };
 
 const threadParentMessageIds = (s: ChatStoreState): string[] => {
@@ -76,7 +63,7 @@ const getMessagesByThreadId =
   (id?: string) =>
   (s: ChatStoreState): ChatMessage[] => {
     // skip tool message
-    const data = chatSelectors.currentChats(s).filter((m) => m.role !== 'tool');
+    const data = chatSelectors.currentChatsWithoutTool(s);
 
     return data.filter((m) => !!id && m.threadId === id);
   };
@@ -87,20 +74,24 @@ const getMessageIdsByThreadId =
     return getMessagesByThreadId(id)(s).map((i) => i.id);
   };
 
-const portalThreadMessages = (s: ChatStoreState): ChatMessage[] => {
+const portalThreadMessages = (s: ChatStoreState) => {
   if (s.newThreadMode === ThreadType.Standalone) return threadParentMessages(s);
 
   const parentMessages = threadParentMessages(s);
   const afterMessages = getMessagesByThreadId(s.portalThreadId)(s);
+  // use for optimistic update
+  const draftMessage = chatSelectors.currentChats(s).find((m) => m.threadId === THREAD_DRAFT_ID);
 
-  return [...parentMessages, ...afterMessages];
+  return [...parentMessages, draftMessage, ...afterMessages].filter(Boolean) as ChatMessage[];
 };
 
 const portalThreadMessageIds = (s: ChatStoreState): string[] => {
   const parentMessages = threadParentMessageIds(s);
   const portalMessages = getMessageIdsByThreadId(s.portalThreadId)(s);
+  // use for optimistic update
+  const draftMessage = chatSelectors.currentChats(s).find((m) => m.threadId === THREAD_DRAFT_ID);
 
-  return [...parentMessages, ...portalMessages];
+  return [...parentMessages, draftMessage?.id, ...portalMessages].filter(Boolean) as string[];
 };
 
 const threadSourceMessageIndex = (s: ChatStoreState) => {

@@ -9,14 +9,14 @@ import { threadSelectors } from '@/store/chat/selectors';
 
 import ThreadItem from './ThreadItem';
 
-const useStyles = createStyles(({ css, token }) => ({
+const useStyles = createStyles(({ css, token, isDarkMode }) => ({
   container: css`
     cursor: pointer;
 
-    padding-block: 12px 8px;
-    padding-inline: 8px;
+    padding-block: 8px 4px;
+    padding-inline: 4px;
 
-    background: ${token.colorFillTertiary};
+    background: ${isDarkMode ? token.colorFillTertiary : token.colorFillQuaternary};
     border-radius: 6px;
   `,
 }));
@@ -39,7 +39,7 @@ const Thread = memo<ThreadProps>(({ id, placement }) => {
       style={{ paddingBottom: 16 }}
     >
       <div style={{ width: 40 }} />
-      <Flexbox className={styles.container} gap={8} padding={4} style={{ width: 'fit-content' }}>
+      <Flexbox className={styles.container} gap={4} padding={4} style={{ width: 'fit-content' }}>
         <Flexbox gap={8} horizontal paddingInline={6}>
           <Typography.Text style={{ fontSize: 12 }} type={'secondary'}>
             子话题 {threads.length}
