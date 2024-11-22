@@ -67,9 +67,9 @@ const Item = memo<ChatListItemProps>(
     const item = useChatStore((s) => {
       const chats = chatSelectors.currentChatsWithGuideMessage(meta)(s);
 
-    console.log('item:', chats, id, chats.find((s) => s.id === id));
       return chats.find((s) => s.id === id);
     }, isEqual);
+
     const [
       isMessageLoading,
       generating,

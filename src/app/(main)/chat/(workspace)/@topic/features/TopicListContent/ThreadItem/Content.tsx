@@ -1,7 +1,7 @@
 import { ActionIcon, EditableText, Icon } from '@lobehub/ui';
 import { App, Dropdown, type MenuProps, Typography } from 'antd';
 import { createStyles } from 'antd-style';
-import { LucideCopy, MoreVertical, PencilLine, Trash, Wand2 } from 'lucide-react';
+import { MoreVertical, PencilLine, Trash } from 'lucide-react';
 import { memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Flexbox } from 'react-layout-kit';
@@ -22,10 +22,12 @@ const useStyles = createStyles(({ css, token }) => ({
   `,
   title: css`
     flex: 1;
+
     height: 28px;
+
     line-height: 28px;
+    color: ${token.colorTextSecondary};
     text-align: start;
-    color: ${token.colorTextTertiary};
   `,
 }));
 const { Paragraph } = Typography;
@@ -38,36 +40,25 @@ interface TopicContentProps {
 }
 
 const Content = memo<TopicContentProps>(({ id, title, active, showMore }) => {
-  const { t } = useTranslation(['topic', 'common']);
+  const { t } = useTranslation(['thread', 'common']);
 
   const mobile = useIsMobile();
 
-  const [editing, updateTopicTitle, removeTopic, autoRenameTopicTitle, duplicateTopic] =
-    useChatStore((s) => [
-      s.topicRenamingId === id,
-      s.updateTopicTitle,
-      s.removeTopic,
-      s.autoRenameTopicTitle,
-      s.duplicateTopic,
-    ]);
+  const [editing, updateThreadTitle, removeThread] = useChatStore((s) => [
+    s.threadRenamingId === id,
+    s.updateThreadTitle,
+    s.removeThread,
+  ]);
   const { styles, cx } = useStyles();
 
   const toggleEditing = (visible?: boolean) => {
-    useChatStore.setState({ topicRenamingId: visible ? id : '' });
+    useChatStore.setState({ threadRenamingId: visible ? id : '' });
   };
 
   const { modal } = App.useApp();
 
   const items = useMemo<MenuProps['items']>(
     () => [
-      {
-        icon: <Icon icon={Wand2} />,
-        key: 'autoRename',
-        label: t('actions.autoRename'),
-        onClick: () => {
-          autoRenameTopicTitle(id);
-        },
-      },
       {
         icon: <Icon icon={PencilLine} />,
         key: 'rename',
@@ -80,30 +71,6 @@ const Content = memo<TopicContentProps>(({ id, title, active, showMore }) => {
         type: 'divider',
       },
       {
-        icon: <Icon icon={LucideCopy} />,
-        key: 'duplicate',
-        label: t('actions.duplicate'),
-        onClick: () => {
-          duplicateTopic(id);
-        },
-      },
-      // {
-      //   icon: <Icon icon={LucideDownload} />,
-      //   key: 'export',
-      //   label: t('topic.actions.export'),
-      //   onClick: () => {
-      //     configService.exportSingleTopic(sessionId, id);
-      //   },
-      // },
-      {
-        type: 'divider',
-      },
-      // {
-      //   icon: <Icon icon={Share2} />,
-      //   key: 'share',
-      //   label: t('share'),
-      // },
-      {
         danger: true,
         icon: <Icon icon={Trash} />,
         key: 'delete',
@@ -115,9 +82,9 @@ const Content = memo<TopicContentProps>(({ id, title, active, showMore }) => {
             centered: true,
             okButtonProps: { danger: true },
             onOk: async () => {
-              await removeTopic(id);
+              await removeThread(id);
             },
-            title: t('actions.confirmRemoveTopic'),
+            title: t('actions.confirmRemoveThread'),
           });
         },
       },
@@ -155,7 +122,7 @@ const Content = memo<TopicContentProps>(({ id, title, active, showMore }) => {
           editing={editing}
           onChangeEnd={(v) => {
             if (title !== v) {
-              updateTopicTitle(id, v);
+              updateThreadTitle(id, v);
             }
             toggleEditing(false);
           }}

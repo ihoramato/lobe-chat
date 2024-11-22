@@ -32,10 +32,11 @@ const useStyles = createStyles(({ css, token, isDarkMode }) => ({
   wrapper: css`
     cursor: pointer;
 
-    margin-block: 2px;
-    padding: 4px 8px;
-
     width: calc(100% - 28px);
+    margin-block: 2px;
+    padding-block: 4px;
+    padding-inline: 8px;
+
     border-radius: ${token.borderRadius}px;
 
     &:hover {
@@ -52,10 +53,10 @@ export interface ThreadItemProps {
 const ThreadItem = memo<ThreadItemProps>(({ title, id }) => {
   const { styles, cx, theme } = useStyles();
   const toggleConfig = useGlobalStore((s) => s.toggleMobileTopic);
-  const [toggleThread] = useChatStore((s) => [s.switchTopic, s.threadMaps]);
+  const [toggleThread, activeThreadId] = useChatStore((s) => [s.switchThread, s.activeThreadId]);
   const [isHover, setHovering] = useState(false);
 
-  const active = false;
+  const active = id === activeThreadId;
   return (
     <Flexbox className={cx(styles.container, 'thread-item')} horizontal>
       <Flexbox

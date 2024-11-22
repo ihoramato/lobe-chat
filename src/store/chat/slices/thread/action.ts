@@ -27,6 +27,7 @@ const SWR_USE_FETCH_THREADS = 'SWR_USE_FETCH_THREADS';
 export interface ChatThreadAction {
   // update
   updateThreadInputMessage: (message: string) => void;
+
   refreshThreads: () => Promise<void>;
   /**
    * Sends a new thread message to the AI chat system
@@ -42,7 +43,9 @@ export interface ChatThreadAction {
   openThreadInPortal: (threadId: string, sourceMessageId: string) => void;
   useFetchThreads: (topicId?: string) => SWRResponse<ThreadItem[]>;
   summaryThreadTitle: (threadId: string, messages: ChatMessage[]) => Promise<void>;
-
+  updateThreadTitle: (id: string, title: string) => Promise<void>;
+  removeThread: (id: string) => Promise<void>;
+  switchThread: (id: string) => void;
   internal_updateThreadTitleInSummary: (id: string, title: string) => void;
   internal_updateThreadLoading: (id: string, loading: boolean) => void;
   internal_updateThread: (id: string, data: Partial<ThreadItem>) => Promise<void>;
@@ -208,6 +211,16 @@ export const chatThreadMessage: StateCreator<
     if (!topicId) return;
 
     return mutate([SWR_USE_FETCH_THREADS, topicId]);
+  },
+  removeThread: async (id) => {
+    await threadService.removeThread(id);
+    await get().refreshThreads();
+  },
+  switchThread: async (id) => {
+    set({ activeThreadId: id }, false, n('toggleTopic'));
+  },
+  updateThreadTitle: async (id, title) => {
+    await get().internal_updateThread(id, { title });
   },
 
   summaryThreadTitle: async (threadId, messages) => {

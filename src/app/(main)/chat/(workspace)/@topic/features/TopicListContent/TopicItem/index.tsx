@@ -45,10 +45,11 @@ export interface ConfigCellProps {
   active?: boolean;
   fav?: boolean;
   id?: string;
+  threadId?: string;
   title: string;
 }
 
-const TopicItem = memo<ConfigCellProps>(({ title, active, id, fav }) => {
+const TopicItem = memo<ConfigCellProps>(({ title, active, id, fav, threadId }) => {
   const { styles, cx } = useStyles();
   const toggleConfig = useGlobalStore((s) => s.toggleMobileTopic);
   const [toggleTopic] = useChatStore((s) => [s.switchTopic]);
@@ -60,7 +61,7 @@ const TopicItem = memo<ConfigCellProps>(({ title, active, id, fav }) => {
     <>
       <Flexbox
         align={'center'}
-        className={cx(styles.container, 'topic-item', active && styles.active)}
+        className={cx(styles.container, 'topic-item', active && !threadId && styles.active)}
         distribution={'space-between'}
         horizontal
         onClick={() => {

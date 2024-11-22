@@ -12,9 +12,11 @@ export interface ChatThreadState {
    * if true it mean to start to fork a new thread
    */
   startToForkThread?: boolean;
+
   threadInputMessage: string;
   threadLoadingIds: string[];
   threadMaps: Record<string, ThreadItem[]>;
+  threadRenamingId?: string;
   /**
    * when open thread creator, set the message id to it
    */

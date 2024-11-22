@@ -30,9 +30,9 @@ export class ThreadService {
   }
 
   //
-  // removeThread(id: string): Promise<any> {
-  //   return lambdaClient.thread.removeThread.mutate({ id });
-  // }
+  removeThread(id: string): Promise<any> {
+    return lambdaClient.thread.removeThread.mutate({ id });
+  }
   //
   // removeThreads(sessionId: string): Promise<any> {
   //   return lambdaClient.thread.batchDeleteBySessionId.mutate({ id: this.toDbSessionId(sessionId) });
