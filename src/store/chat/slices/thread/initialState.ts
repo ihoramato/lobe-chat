@@ -13,6 +13,7 @@ export interface ChatThreadState {
    */
   startToForkThread?: boolean;
   threadInputMessage: string;
+  threadLoadingIds: string[];
   threadMaps: Record<string, ThreadItem[]>;
   /**
    * when open thread creator, set the message id to it
@@ -25,6 +26,7 @@ export const initialThreadState: ChatThreadState = {
   isCreatingThread: false,
   newThreadMode: ThreadType.Continuation,
   threadInputMessage: '',
+  threadLoadingIds: [],
   threadMaps: {},
   threadsInit: false,
 };

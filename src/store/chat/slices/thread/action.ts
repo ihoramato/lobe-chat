@@ -4,16 +4,22 @@ import isEqual from 'fast-deep-equal';
 import { SWRResponse, mutate } from 'swr';
 import { StateCreator } from 'zustand/vanilla';
 
-import { MESSAGE_THREAD_DIVIDER_ID, THREAD_DRAFT_ID } from '@/const/message';
+import { chainSummaryTitle } from '@/chains/summaryTitle';
+import { LOADING_FLAT, THREAD_DRAFT_ID } from '@/const/message';
 import { useClientDataSWR } from '@/libs/swr';
+import { chatService } from '@/services/chat';
 import { threadService } from '@/services/thread';
 import { threadSelectors } from '@/store/chat/selectors';
-import { chatSelectors } from '@/store/chat/slices/message/selectors';
 import { ChatStore } from '@/store/chat/store';
 import { useSessionStore } from '@/store/session';
-import { CreateMessageParams, SendThreadMessageParams } from '@/types/message';
+import { useUserStore } from '@/store/user';
+import { systemAgentSelectors } from '@/store/user/slices/settings/selectors';
+import { ChatMessage, CreateMessageParams, SendThreadMessageParams } from '@/types/message';
 import { ThreadItem, ThreadType } from '@/types/topic';
+import { merge } from '@/utils/merge';
 import { setNamespace } from '@/utils/storeDebug';
+
+import { ThreadDispatch, threadReducer } from './reducer';
 
 const n = setNamespace('thd');
 const SWR_USE_FETCH_THREADS = 'SWR_USE_FETCH_THREADS';
@@ -35,6 +41,12 @@ export interface ChatThreadAction {
   openThreadCreator: (messageId: string) => void;
   openThreadInPortal: (threadId: string, sourceMessageId: string) => void;
   useFetchThreads: (topicId?: string) => SWRResponse<ThreadItem[]>;
+  summaryThreadTitle: (threadId: string, messages: ChatMessage[]) => Promise<void>;
+
+  internal_updateThreadTitleInSummary: (id: string, title: string) => void;
+  internal_updateThreadLoading: (id: string, loading: boolean) => void;
+  internal_updateThread: (id: string, data: Partial<ThreadItem>) => Promise<void>;
+  internal_dispatchThread: (payload: ThreadDispatch, action?: any) => void;
 }
 
 export const chatThreadMessage: StateCreator<
@@ -144,36 +156,21 @@ export const chatThreadMessage: StateCreator<
 
     set({ isCreatingMessage: false }, false, n('creatingMessage/stop'));
 
-    // switch to the new topic if create the new topic
-    // const agentConfig = getAgentChatConfig();
+    // 说明是在新建 thread，需要自动总结标题
+    if (!portalThreadId) {
+      const portalThread = threadSelectors.currentPortalThread(get());
 
-    // const summaryTitle = async () => {
-    //   // if autoCreateTopic is false, then stop
-    //   if (!agentConfig.enableAutoCreateTopic) return;
-    //
-    //   // check activeTopic and then auto update topic title
-    //   if (newThreadId) {
-    //     const chats = chatSelectors.currentChats(get());
-    //     await get().summaryTopicTitle(newThreadId, chats);
-    //     return;
-    //   }
-    //
-    //   const topic = topicSelectors.currentActiveTopic(get());
-    //
-    //   if (topic && !topic.title) {
-    //     const chats = chatSelectors.currentChats(get());
-    //     await get().summaryTopicTitle(topic.id, chats);
-    //   }
-    // };
-    //
-    // await summaryTitle();
+      if (portalThread && !portalThread.title) {
+        const chats = threadSelectors.portalThreadMessages(get());
+        await get().summaryThreadTitle(portalThread.id, chats);
+      }
+    }
   },
 
   createThread: async ({ message, sourceMessageId, topicId, type }) => {
     set({ isCreatingThread: true }, false, n('creatingThread/start'));
-    const sourceMessage = chatSelectors.getMessageById(sourceMessageId)(get());
+
     const data = await threadService.createThreadWithMessage({
-      title: sourceMessage?.content.slice(0, 20),
       topicId,
       sourceMessageId,
       type,
@@ -211,5 +208,77 @@ export const chatThreadMessage: StateCreator<
     if (!topicId) return;
 
     return mutate([SWR_USE_FETCH_THREADS, topicId]);
+  },
+
+  summaryThreadTitle: async (threadId, messages) => {
+    const { internal_updateThreadTitleInSummary, internal_updateThreadLoading } = get();
+    const portalThread = threadSelectors.currentPortalThread(get());
+    if (!portalThread) return;
+
+    internal_updateThreadTitleInSummary(threadId, LOADING_FLAT);
+
+    let output = '';
+    const threadConfig = systemAgentSelectors.thread(useUserStore.getState());
+
+    await chatService.fetchPresetTaskResult({
+      onError: () => {
+        internal_updateThreadTitleInSummary(threadId, portalThread.title);
+      },
+      onFinish: async (text) => {
+        await get().internal_updateThread(threadId, { title: text });
+      },
+      onLoadingChange: (loading) => {
+        internal_updateThreadLoading(threadId, loading);
+      },
+      onMessageHandle: (chunk) => {
+        switch (chunk.type) {
+          case 'text': {
+            output += chunk.text;
+          }
+        }
+
+        internal_updateThreadTitleInSummary(threadId, output);
+      },
+      params: merge(threadConfig, chainSummaryTitle(messages)),
+    });
+  },
+
+  // Internal process method of the topics
+  internal_updateThreadTitleInSummary: (id, title) => {
+    get().internal_dispatchThread(
+      { type: 'updateThread', id, value: { title } },
+      'updateThreadTitleInSummary',
+    );
+  },
+
+  internal_updateThreadLoading: (id, loading) => {
+    set(
+      (state) => {
+        if (loading) return { threadLoadingIds: [...state.threadLoadingIds, id] };
+
+        return { threadLoadingIds: state.threadLoadingIds.filter((i) => i !== id) };
+      },
+      false,
+      n('updateThreadLoading'),
+    );
+  },
+
+  internal_updateThread: async (id, data) => {
+    get().internal_dispatchThread({ type: 'updateThread', id, value: data });
+
+    get().internal_updateThreadLoading(id, true);
+    await threadService.updateThread(id, data);
+    await get().refreshThreads();
+    get().internal_updateThreadLoading(id, false);
+  },
+
+  internal_dispatchThread: (payload, action) => {
+    const nextThreads = threadReducer(threadSelectors.currentTopicThreads(get()), payload);
+    const nextMap = { ...get().threadMaps, [get().activeTopicId!]: nextThreads };
+
+    // no need to update map if is the same
+    if (isEqual(nextMap, get().threadMaps)) return;
+
+    set({ threadMaps: nextMap }, false, action ?? n(`dispatchThread/${payload.type}`));
   },
 });

@@ -125,6 +125,7 @@ const hasThreadBySourceMsgId = (id: string) => (s: ChatStoreState) => {
 };
 
 export const threadSelectors = {
+  currentPortalThread,
   currentTopicThreads,
   getFirstThreadBySourceMsgId,
   getMessageIdsByThreadId,

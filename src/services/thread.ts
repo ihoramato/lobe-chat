@@ -14,24 +14,21 @@ export class ThreadService {
   createThreadWithMessage({
     message,
     ...params
-  }: CreateThreadWithMessageParams): Promise<{ messageId: string, threadId: string; }> {
+  }: CreateThreadWithMessageParams): Promise<{ messageId: string; threadId: string }> {
     return lambdaClient.thread.createThreadWithMessage.mutate({
       ...params,
       message: { ...message, sessionId: this.toDbSessionId(message.sessionId) },
     });
   }
 
-  createThread(params: CreateThreadParams): Promise<string> {
-    return lambdaClient.thread.createThread.mutate(params);
+  // createThread(params: CreateThreadParams): Promise<string> {
+  //   return lambdaClient.thread.createThread.mutate(params);
+  // }
+
+  updateThread(id: string, data: Partial<ThreadItem>): Promise<any> {
+    return lambdaClient.thread.updateThread.mutate({ id, value: data });
   }
 
-  private toDbSessionId(sessionId: string | undefined) {
-    return sessionId === INBOX_SESSION_ID ? null : sessionId;
-  }
-  //
-  // updateThread(id: string, data: Partial<ChatThread>): Promise<any> {
-  //   return lambdaClient.thread.updateThread.mutate({ id, value: data });
-  // }
   //
   // removeThread(id: string): Promise<any> {
   //   return lambdaClient.thread.removeThread.mutate({ id });
@@ -48,6 +45,10 @@ export class ThreadService {
   // removeAllThread(): Promise<any> {
   //   return lambdaClient.thread.removeAllThreads.mutate();
   // }
+
+  private toDbSessionId(sessionId: string | undefined) {
+    return sessionId === INBOX_SESSION_ID ? null : sessionId;
+  }
 }
 
 export const threadService = new ThreadService();

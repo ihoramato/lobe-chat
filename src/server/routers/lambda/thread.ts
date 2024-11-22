@@ -39,7 +39,7 @@ export const threadRouter = router({
       const thread = await ctx.threadModel.create({
         parentThreadId: input.parentThreadId,
         sourceMessageId: input.sourceMessageId,
-        title: input.title,
+        title: input.message.content.slice(0, 20),
         topicId: input.topicId,
         type: input.type,
       });
